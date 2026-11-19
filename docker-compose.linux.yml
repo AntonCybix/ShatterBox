@@ -1,0 +1,20 @@
+# Tillägg för Linux. Används automatiskt: "shatterbox setup" lägger
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.linux.yml
+# i .env, och då läser alla "docker compose"-kommandon i den här mappen båda filerna.
+#
+# I Linux lyssnar Ollama och talsyntesen bara på 127.0.0.1 på värddatorn, och dit når inte
+# en vanlig container. Discord-boten får därför dela värdens nätverk och når då allt på
+# 127.0.0.1, precis som "shatterbox talk" gör.
+
+services:
+  bot:
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    environment:
+      OLLAMA_URL: http://127.0.0.1:11434
+      STT_URL: http://127.0.0.1:8001
+      TTS_URL: http://127.0.0.1:8003
+      SEARXNG_URL: http://127.0.0.1:8888
+      STATUS_PORT: "8004"
+      STATUS_HOST: 127.0.0.1

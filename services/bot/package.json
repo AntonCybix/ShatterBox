@@ -1,0 +1,22 @@
+{
+  "name": "rostassistent-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Discord-röstbot: lyssnar, frågar Gemma (med webbsök) och svarar med klonad röst",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "ask": "node src/cli.js"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "@snazzah/davey": "^0.1.9",
+    "discord.js": "^14.28.1",
+    "libsodium-wrappers": "^0.7.15",
+    "opusscript": "^0.0.8",
+    "prism-media": "^1.3.5"
+  }
+}

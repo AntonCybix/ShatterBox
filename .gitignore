@@ -1,0 +1,35 @@
+# Hemligheter och lokala inställningar (Discord-tokens ligger i .env)
+.env
+.env.*
+!.env.example
+
+# Sökmotorns inställningar skapas från settings.example.yml med en egen hemlig nyckel
+searxng/settings.yml
+
+# Laddas ner eller byggs av setup: modeller, verktyg, Python-miljö
+models/
+tools/
+.venv-omnivoice/
+node_modules/
+
+# Lokalt innehåll som inte hör hemma i ett delat repo
+logs/
+out/
+data/
+*.lnk
+
+# Röstprov är personliga (och ofta någon annans röst)
+voice/*
+!voice/README.md
+
+# Karaktärer stannar lokalt: inga personor, faktablad eller ordlistor följer med i repot.
+personas/*
+!personas/README.md
+knowledge/*
+!knowledge/README.md
+
+# Skräp
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

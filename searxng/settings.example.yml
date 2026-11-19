@@ -1,0 +1,25 @@
+# SearXNG - lokal metasökmotor som karaktärerna använder för webbsök.
+#
+# Den här filen är en mall. Vid första starten kopieras den till settings.yml och
+# __SECRET_KEY__ byts mot en slumpad nyckel som bara finns på din dator.
+use_default_settings: true
+
+general:
+  instance_name: "ShatterBox sök"
+
+server:
+  secret_key: "__SECRET_KEY__"
+  limiter: false          # bara lokalt bruk, ingen bot-spärr
+  public_instance: false
+  image_proxy: false
+
+outgoing:
+  request_timeout: 2.0    # vänta inte på långsamma sökmotorer - det här är ett röstsamtal
+  max_request_timeout: 4.0
+
+search:
+  safe_search: 0
+  default_lang: "sv-SE"
+  formats:
+    - html
+    - json                # krävs för att karaktärerna ska kunna läsa resultaten

@@ -1,0 +1,107 @@
+# ShatterBox: lyssna (KB-Whisper) -> tänka (Gemma via Ollama) -> söka (SearXNG) -> prata (klonad röst)
+#
+# Starta allt:   shatterbox start   (startar även Ollama och talsyntesen)
+# Stoppa allt:   shatterbox stop
+# Loggar:        shatterbox logs    (eller docker compose logs -f bot)
+#
+# Två delar körs direkt på datorn i stället för i Docker, eftersom Docker på Windows inte
+# kommer åt AMD-grafikkort:
+#   - Ollama (språkmodellen)                              -> port 11434
+#   - talsyntesen OmniVoice (scripts/tts-gpu.ps1, tts.sh) -> port 8003
+# Här ligger resten: webbsök, tal-till-text och Discord-botarna. Lokala karaktärer
+# ("shatterbox talk") använder samma tjänster via portarna på 127.0.0.1.
+# Modellerna sparas under ./models.
+#
+# I Linux läggs docker-compose.linux.yml ovanpå den här filen (se den).
+#
+# Reservläge helt i Docker, utan grafikkort (talsyntesen blir då mycket långsam):
+#   sätt TTS_URL=http://tts:8000 i .env och kör  docker compose --profile cpu up -d
+
+name: shatterbox
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8888:8080"   # webbgränssnitt: http://localhost:8888
+    volumes:
+      - ./searxng:/etc/searxng
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  stt:
+    build: ./services/stt
+    restart: unless-stopped
+    environment:
+      HF_HOME: /models/huggingface
+      STT_MODEL: ${STT_MODEL:-KBLab/kb-whisper-small}
+      STT_MODEL_EN: ${STT_MODEL_EN:-}                  # tomt = flerspråkiga Whisper "small", som också avgör språket
+      STT_HOTWORDS: ${STT_HOTWORDS:-}
+      STT_LANGUAGE: ${LANGUAGE:-sv}
+      STT_THREADS: ${STT_THREADS:-8}
+    volumes:
+      - ./models:/models
+    ports:
+      - "127.0.0.1:8001:8000"   # används också av talsyntesen för att läsa av röstprovet
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15m      # första starten laddar ner modellen
+      start_interval: 5s
+
+  bot:
+    build: ./services/bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+      STT_URL: http://stt:8000
+      TTS_URL: ${TTS_URL:-http://host.docker.internal:8003}
+      SEARXNG_URL: http://searxng:8080
+      TZ: Europe/Stockholm
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8004:8080"   # status för kontrollpanelen (appen)
+    volumes:
+      - ./out:/out
+      - ./personas:/personas:ro   # en textfil per karaktär, t.ex. personas/kapten-krok.txt
+      - ./knowledge:/knowledge:ro # bakgrundskunskap per karaktär, t.ex. knowledge/kapten-krok.md
+      - ./data:/data              # minne per karaktär (data/memory/<namn>.json)
+    depends_on:
+      searxng:
+        condition: service_healthy
+      stt:
+        condition: service_healthy
+
+  # Reserv: talsyntes på CPU i Docker (Chatterbox). Fungerar utan grafikkort men tar
+  # ungefär fem gånger så lång tid som själva talet. Startas bara med --profile cpu.
+  tts:
+    profiles: ["cpu"]
+    build: ./services/tts
+    restart: unless-stopped
+    environment:
+      HF_HOME: /models/huggingface
+      TORCH_HOME: /models/torch
+      TTS_LANGUAGE: ${LANGUAGE:-sv}
+      TTS_THREADS: ${TTS_THREADS:-8}
+    volumes:
+      - ./models:/models
+      - ./models/pkuseg:/root/.pkuseg
+      - ./voice:/voice:ro
+    ports:
+      - "127.0.0.1:8002:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30m
+      start_interval: 5s

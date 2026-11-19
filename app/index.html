@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShatterBox</title>
+<link rel="icon" href="/icon.png">
+<style>
+  :root {
+    --bg: #f4f2ee; --panel: #ffffff; --ink: #1d1b19; --muted: #6b655e; --line: #e2ddd5;
+    --accent: #0f766e; --accent-ink: #ffffff; --ok: #15803d; --warn: #b45309; --bad: #b91c1c;
+    --chip: #ece8e1; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151413; --panel: #1f1e1c; --ink: #f1eee9; --muted: #a39c93; --line: #33302c;
+      --accent: #2dd4bf; --accent-ink: #062b27; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+      --chip: #2a2825; --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 20px 20px 48px; }
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  header img { width: 44px; height: 44px; border-radius: 11px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+  header .summary { color: var(--muted); font-size: 14px; }
+  header .spacer { flex: 1; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 26px 0 10px; font-weight: 600; }
+  button, .button {
+    font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block;
+  }
+  button:hover:not(:disabled), .button:hover { border-color: var(--muted); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  button.danger { color: var(--bad); }
+  button.small, .button.small { padding: 4px 10px; font-size: 13px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 4px 12px 4px 10px; font-size: 13px; display: flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.on { background: var(--ok); } .dot.off { background: var(--bad); }
+  .notice { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 10px; padding: 12px 14px; margin-top: 14px; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  .notice.error { border-left-color: var(--bad); } .notice.busy { border-left-color: var(--accent); }
+  .notice .text { flex: 1; min-width: 240px; }
+  .notice pre { margin: 8px 0 0; }
+  pre { background: var(--chip); border-radius: 8px; padding: 10px 12px; font: 12px/1.45 Consolas, ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+  .card .top { display: flex; gap: 12px; align-items: center; }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: none; }
+  .card h3 { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+  .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-left: 6px; font-weight: 400; white-space: nowrap; }
+  .status { font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+  .status .dot { transform: translateY(-1px); }
+  .facts { font-size: 13px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+  .facts b { color: var(--ink); font-weight: 600; }
+  .card .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+  .card.add { border-style: dashed; box-shadow: none; align-items: center; justify-content: center; min-height: 170px; cursor: pointer; color: var(--muted); background: transparent; font: inherit; }
+  .card.add:hover { color: var(--ink); border-color: var(--muted); }
+  .card.add .plus { font-size: 30px; line-height: 1; }
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); padding: 0; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  form { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+  form h3 { margin: 0; font-size: 19px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 14px; }
+  label .hint, .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+  input[type=text], input[type=password], select, textarea {
+    font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  textarea { min-height: 150px; resize: vertical; font-size: 14px; }
+  .row { display: grid; grid-template-columns: 1fr 160px; gap: 12px; }
+  .check { flex-direction: row; align-items: flex-start; gap: 9px; font-weight: 400; }
+  .check input { margin-top: 4px; }
+  fieldset.mode { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  fieldset.mode legend { font-weight: 600; font-size: 14px; padding: 0; margin-bottom: 4px; }
+  fieldset.mode label { flex-direction: row; align-items: flex-start; gap: 9px; font-weight: 400; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+  fieldset.mode label:has(input:checked) { border-color: var(--accent); }
+  fieldset.mode input { margin-top: 4px; }
+  code { background: var(--chip); border-radius: 5px; padding: 1px 5px; font: 12px Consolas, ui-monospace, monospace; }
+  .steps { background: var(--chip); border-radius: 10px; padding: 10px 14px 10px 30px; margin: 0; font-size: 13px; }
+  .steps li { margin: 2px 0; }
+  .form-error { color: var(--bad); font-size: 14px; min-height: 0; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .voice-current { display: flex; gap: 10px; align-items: center; font-weight: 400; font-size: 13px; }
+  details { margin-top: 26px; }
+  summary { cursor: pointer; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .tabs { display: flex; gap: 8px; margin: 10px 0; }
+  .tabs button.active { border-color: var(--accent); color: var(--accent); }
+  #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; max-width: min(560px, calc(100vw - 32px)); display: none; z-index: 10; }
+  a { color: var(--accent); }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="/icon.png" alt="">
+    <div>
+      <h1>ShatterBox</h1>
+      <div class="summary" id="summary">Läser av läget …</div>
+    </div>
+    <div class="spacer"></div>
+    <button id="start" class="primary" disabled>Starta allt</button>
+    <button id="stop" disabled>Stoppa allt</button>
+  </header>
+
+  <div class="chips" id="services"></div>
+  <div id="notices"></div>
+
+  <h2>Karaktärer</h2>
+  <div class="grid" id="bots"></div>
+
+  <details id="logs">
+    <summary>Logg</summary>
+    <div class="tabs">
+      <button class="small active" data-source="bot">Botarna</button>
+      <button class="small" data-source="tts">Talsyntesen</button>
+      <button class="small" data-source="action">Start och stopp</button>
+    </div>
+    <pre id="logtext">–</pre>
+  </details>
+</main>
+
+<dialog id="dialog">
+  <form id="form" autocomplete="off">
+    <h3 id="form-title">Ny karaktär</h3>
+
+    <fieldset class="mode">
+      <legend>Var ska karaktären finnas?</legend>
+      <label>
+        <input type="radio" name="mode" value="discord" checked>
+        <span><b>Discord</b><br><span class="hint">En egen Discord-bot som går med i röstkanaler.</span></span>
+      </label>
+      <label>
+        <input type="radio" name="mode" value="local">
+        <span><b>Bara på den här datorn</b><br><span class="hint">Utan Discord. Du pratar med den i ett terminalfönster.</span></span>
+      </label>
+    </fieldset>
+
+    <ol class="steps" id="form-steps">
+      <li>Skapa en ny app på <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a>.</li>
+      <li><b>Installation</b> → sätt installationslänken till <b>Ingen</b>. <b>Bot</b> → stäng av <b>Publik bot</b>.</li>
+      <li><b>Bot</b> → <b>Återställ token</b> → kopiera och klistra in den här nedanför.</li>
+    </ol>
+
+    <div class="row">
+      <label>Namn
+        <input type="text" name="name" maxlength="40" required placeholder="t.ex. Kapten Krok">
+      </label>
+      <label>Språk
+        <select name="language">
+          <option value="sv">Svenska</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+    </div>
+
+    <label id="token-field">Discord-token
+      <input type="password" name="token" placeholder="Klistra in botens token" spellcheck="false">
+      <span class="hint" id="token-hint">Sparas bara på den här datorn, i filen .env i projektmappen.</span>
+    </label>
+
+    <label>Persona
+      <span class="hint">Vem karaktären är och hur den pratar. Skriv på karaktärens språk och var konkret: typiska ord, ton, vad den gillar och ogillar. Lämna tomt för en vanlig assistent.</span>
+      <textarea name="persona" placeholder="Du är …"></textarea>
+    </label>
+
+    <label class="check">
+      <input type="checkbox" name="parody">
+      <span><b>Imitation av en verklig person</b><br><span class="hint">Håller stilen, men säger ärligt att den är en bot om någon frågar på allvar. Lämna urkryssad för påhittade figurer, som då alltid stannar i rollen.</span></span>
+    </label>
+
+    <label class="check">
+      <input type="checkbox" name="wakeOnly">
+      <span><b>Svarar bara på sitt namn</b><br><span class="hint">Karaktären är tyst tills någon säger namnet, till exempel "Sigrid, var hittar jag …". Gäller i Discord. Bra när den sitter med i en kanal där ni pratar med varandra.</span></span>
+    </label>
+
+    <label>Röstprov
+      <span class="hint">10–15 sekunder sammanhängande tal utan musik eller pauser (wav, m4a, mp3 …). Saknas röstprov används den designade rösten nedan.</span>
+      <span class="voice-current" id="voice-current"></span>
+      <input type="file" name="voice" accept=".wav,.m4a,.mp3,.flac,.ogg,.opus,.aac,.wma,.webm,.mp4,audio/*">
+    </label>
+
+    <label>Designad röst
+      <span class="hint">Kombinera ord: male / female · child / teenager / young adult / middle-aged / elderly · very low pitch … very high pitch · whisper · british / american / australian accent (bara engelska).</span>
+      <input type="text" name="voiceStyle" maxlength="120" placeholder="t.ex. male, elderly, low pitch">
+    </label>
+
+    <label>Hälsningsfras
+      <span class="hint">Sägs när karaktären går med i en röstkanal eller när ett samtal i terminalen börjar. Tomt = standardfrasen.</span>
+      <input type="text" name="greeting" maxlength="160">
+    </label>
+
+    <div class="form-error" id="form-error"></div>
+    <div class="form-actions">
+      <button type="button" id="cancel">Avbryt</button>
+      <button type="submit" class="primary" id="save">Spara</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const SESSION = '__SESSION__';
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...children) => {
+  const node = Object.assign(document.createElement(tag), props);
+  for (const child of children.flat()) if (child != null) node.append(child);
+  return node;
+};
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { ...options, headers: { 'x-panel-token': SESSION, ...(options.headers ?? {}) } });
+  const data = await res.json().catch(() => ({}));
+  // Appen har startats om sedan sidan laddades: hämta sidan på nytt så att den får en ny nyckel.
+  if (res.status === 403 && !sessionStorage.reloaded) {
+    sessionStorage.reloaded = '1';
+    location.reload();
+  }
+  if (res.ok) sessionStorage.removeItem('reloaded');
+  if (!res.ok) throw new Error(data.error || `Fel ${res.status}`);
+  return data;
+}
+
+let state = null;
+let editing = null; // karaktären som redigeras, eller null för ny
+let removeVoice = false;
+let logSource = 'bot';
+let toastTimer = null;
+
+function toast(message) {
+  $('toast').textContent = message;
+  $('toast').style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').style.display = 'none'; }, 6000);
+}
+
+const SERVICES = [
+  ['ollama', 'Språkmodell'],
+  ['stt', 'Tal-till-text'],
+  ['tts', 'Talsyntes'],
+  ['search', 'Webbsök'],
+  ['bot', 'Discord-botar'],
+];
+const ACTION_NAMES = { start: 'Startar allt', stop: 'Stoppar allt', restart: 'Startar om botarna' };
+
+function botStatus(bot) {
+  const live = bot.live;
+  if (bot.mode === 'local') {
+    const ready = state.services.ollama && state.services.tts;
+    return ready ? ['on', 'Redo. Prata med den i ett terminalfönster'] : ['off', 'Starta allt för att kunna prata'];
+  }
+  if (!state.services.bot) return ['off', 'Inte igång'];
+  if (!bot.hasToken) return ['off', 'Token saknas'];
+  if (!live || !live.hasToken) return ['', 'Sparad, startas vid nästa omstart'];
+  if (live.error) return ['off', live.error];
+  if (live.voice) return ['on', `I röstkanalen #${live.voice.channel} (${live.voice.guild})`];
+  if (live.loggedIn) {
+    return live.guilds.length
+      ? ['on', `Inloggad som ${live.tag}`]
+      : ['', `Inloggad som ${live.tag}, men inte inbjuden till någon server`];
+  }
+  return ['', 'Loggar in …'];
+}
+
+function render() {
+  const { services, bots, action, pendingRestart } = state;
+  const up = SERVICES.filter(([key]) => services[key]).length;
+  const busy = Boolean(action?.running);
+  const inVoice = bots.filter((bot) => bot.live?.voice).length;
+  const onDiscord = bots.filter((bot) => bot.mode === 'discord');
+  const local = bots.length - onDiscord.length;
+
+  $('summary').textContent = busy
+    ? `${ACTION_NAMES[action.name] ?? 'Arbetar'} …`
+    : up === SERVICES.length
+      ? `Allt är igång · ${onDiscord.filter((b) => b.live?.loggedIn).length} av ${onDiscord.length} inloggade på Discord${local ? ` · ${local} lokala` : ''}${inVoice ? ` · ${inVoice} i röstkanal` : ''}`
+      : up === 0 ? 'Avstängt' : `${up} av ${SERVICES.length} delar igång`;
+  $('start').disabled = busy || up === SERVICES.length;
+  $('stop').disabled = busy || up === 0;
+
+  $('services').replaceChildren(...SERVICES.map(([key, label]) =>
+    el('span', { className: 'chip' }, el('span', { className: `dot ${services[key] ? 'on' : 'off'}` }), label)));
+
+  const notices = [];
+  if (busy) {
+    notices.push(el('div', { className: 'notice busy' },
+      el('div', { className: 'text' }, el('b', {}, `${ACTION_NAMES[action.name]} …`),
+        action.name === 'start' ? ' Första starten kan ta någon minut.' : '',
+        action.log ? el('pre', {}, action.log) : null)));
+  } else if (action && action.exitCode !== 0 && action.exitCode !== null) {
+    notices.push(el('div', { className: 'notice error' },
+      el('div', { className: 'text' }, el('b', {}, 'Det gick inte som det skulle.'), el('pre', {}, action.log || '(ingen utskrift)'))));
+  }
+  if (pendingRestart && !busy) {
+    notices.push(el('div', { className: 'notice' },
+      el('div', { className: 'text' }, el('b', {}, 'Sparade ändringar gäller först när botarna har startats om. '),
+        inVoice ? 'Karaktärer som sitter i en röstkanal kopplas då ner och behöver /join igen.' : 'Det tar ungefär tio sekunder.'),
+      el('button', { className: 'primary', onclick: () => run('/api/restart-bots') }, 'Starta om botarna')));
+  }
+  $('notices').replaceChildren(...notices);
+
+  const cards = bots.map((bot) => {
+    const [dot, text] = botStatus(bot);
+    const voice = bot.voiceFile ? `röstprov (${bot.voiceFile})` : bot.voiceStyle ? `designad (${bot.voiceStyle})` : 'standardröst';
+    return el('div', { className: 'card' },
+      el('div', { className: 'top' },
+        el('div', { className: 'avatar' }, bot.name.trim().charAt(0).toUpperCase() || '?'),
+        el('h3', {}, bot.name, el('span', { className: 'tag' }, bot.language === 'sv' ? 'svenska' : bot.language === 'en' ? 'English' : bot.language),
+          bot.mode === 'local' ? el('span', { className: 'tag' }, 'lokal') : null,
+          bot.parody ? el('span', { className: 'tag' }, 'imitation') : null,
+          bot.wakeOnly ? el('span', { className: 'tag' }, 'svarar på namn') : null)),
+      el('div', { className: 'status' }, el('span', { className: `dot ${dot}` }), el('span', {}, text)),
+      el('ul', { className: 'facts' },
+        el('li', {}, el('b', {}, 'Röst: '), voice),
+        el('li', {}, el('b', {}, 'Persona: '), bot.persona ? `${bot.persona.length} tecken` : 'ingen (vanlig assistent)'),
+        el('li', {}, el('b', {}, 'I terminalen: '), el('code', {}, `${state.talkCommand} ${bot.key}`))),
+      el('div', { className: 'actions' },
+        el('button', { className: bot.mode === 'local' ? 'small primary' : 'small', title: 'Öppnar ett terminalfönster där du pratar med karaktären', onclick: () => talk(bot) }, 'Prata'),
+        el('button', { className: 'small', onclick: () => openForm(bot) }, 'Redigera'),
+        bot.inviteUrl ? el('a', { className: 'button small', href: bot.inviteUrl, target: '_blank', rel: 'noopener' }, 'Bjud in till server') : null,
+        bot.index > 1 ? el('button', { className: 'small danger', onclick: () => remove(bot) }, 'Ta bort') : null));
+  });
+  cards.push(el('button', { className: 'card add', onclick: () => openForm(null) },
+    el('span', { className: 'plus' }, '+'), el('span', {}, 'Ny karaktär')));
+  $('bots').replaceChildren(...cards);
+}
+
+async function refresh() {
+  try {
+    state = await api('/api/state');
+    render();
+    if ($('logs').open) {
+      const { text } = await api(`/api/logs?source=${logSource}`);
+      const pre = $('logtext');
+      const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 30;
+      pre.textContent = text || '(tomt)';
+      if (atBottom) pre.scrollTop = pre.scrollHeight;
+    }
+  } catch (error) {
+    $('summary').textContent = `Appen svarar inte: ${error.message}`;
+  }
+}
+
+async function run(path) {
+  try {
+    await api(path, { method: 'POST' });
+  } catch (error) {
+    toast(error.message);
+  }
+  refresh();
+}
+
+async function talk(bot) {
+  try {
+    await api(`/api/bots/${bot.index}/talk`, { method: 'POST' });
+    toast(`Ett terminalfönster med ${bot.name} öppnas.`);
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+// Discord-delarna av formuläret visas bara för karaktärer som ska finnas på Discord.
+function showModeFields() {
+  const local = $('form').mode.value === 'local';
+  $('token-field').style.display = local ? 'none' : '';
+  $('form-steps').style.display = local || editing?.hasToken ? 'none' : '';
+}
+
+function openForm(bot) {
+  editing = bot;
+  removeVoice = false;
+  const form = $('form');
+  form.reset();
+  $('form-error').textContent = '';
+  $('form-title').textContent = bot ? `Redigera ${bot.name}` : 'Ny karaktär';
+  form.mode.value = bot?.mode ?? 'discord';
+  showModeFields();
+  form.name.value = bot?.name ?? '';
+  form.language.value = bot?.language ?? 'sv';
+  form.persona.value = bot?.persona ?? '';
+  form.parody.checked = bot?.parody ?? false;
+  form.wakeOnly.checked = bot?.wakeOnly ?? false;
+  form.voiceStyle.value = bot?.voiceStyle ?? '';
+  form.greeting.value = bot?.greeting ?? '';
+  form.token.placeholder = bot?.hasToken ? 'Token är sparad – lämna tomt för att behålla den' : 'Klistra in botens token';
+  renderVoiceCurrent();
+  $('dialog').showModal();
+  form.name.focus();
+}
+
+function renderVoiceCurrent() {
+  const holder = $('voice-current');
+  if (editing?.voiceFile && !removeVoice) {
+    holder.replaceChildren(`Nuvarande: ${editing.voiceFile}`,
+      el('button', { type: 'button', className: 'small', onclick: () => { removeVoice = true; renderVoiceCurrent(); } }, 'Ta bort'));
+  } else {
+    holder.replaceChildren(removeVoice ? 'Röstprovet tas bort när du sparar.' : '');
+  }
+}
+
+async function remove(bot) {
+  if (!confirm(`Ta bort ${bot.name}?\n\nInställningarna och token tas bort. Persona-filen och röstprovet ligger kvar på disken.`)) return;
+  try {
+    await api(`/api/bots/${bot.index}`, { method: 'DELETE' });
+    toast(`${bot.name} är borttagen.`);
+  } catch (error) {
+    toast(error.message);
+  }
+  refresh();
+}
+
+$('form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  $('save').disabled = true;
+  $('form-error').textContent = '';
+  try {
+    const body = {
+      name: form.name.value, mode: form.mode.value, language: form.language.value,
+      token: form.mode.value === 'local' ? '' : form.token.value,
+      persona: form.persona.value, parody: form.parody.checked, wakeOnly: form.wakeOnly.checked,
+      voiceStyle: form.voiceStyle.value, greeting: form.greeting.value,
+    };
+    const result = editing
+      ? await api(`/api/bots/${editing.index}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      : await api('/api/bots', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const index = result.bot.index;
+    const file = form.voice.files[0];
+    if (file) {
+      await api(`/api/bots/${index}/voice?name=${encodeURIComponent(file.name)}`, { method: 'PUT', body: file });
+    } else if (removeVoice) {
+      await api(`/api/bots/${index}/voice`, { method: 'DELETE' });
+    }
+    $('dialog').close();
+    const token = result.token;
+    toast(token?.ok ? `Sparat. Discord godkände token: ${token.tag}.`
+      : token ? `Sparat, men token kunde inte kontrolleras just nu (${token.reason}).` : 'Sparat.');
+  } catch (error) {
+    $('form-error').textContent = error.message;
+  } finally {
+    $('save').disabled = false;
+    refresh();
+  }
+});
+
+$('cancel').addEventListener('click', () => $('dialog').close());
+for (const radio of $('form').mode) radio.addEventListener('change', showModeFields);
+$('start').addEventListener('click', () => run('/api/start'));
+$('stop').addEventListener('click', () => {
+  const inVoice = state?.bots.some((bot) => bot.live?.voice);
+  if (!inVoice || confirm('En karaktär sitter i en röstkanal. Stoppa ändå?')) run('/api/stop');
+});
+$('logs').addEventListener('toggle', refresh);
+for (const button of document.querySelectorAll('.tabs button')) {
+  button.addEventListener('click', () => {
+    logSource = button.dataset.source;
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b === button));
+    refresh();
+  });
+}
+
+// Startad från genvägen: sätt igång allt om det inte redan kör.
+(async () => {
+  await refresh();
+  const params = new URLSearchParams(location.search);
+  if (params.get('autostart') === '1') {
+    history.replaceState(null, '', '/');
+    const allUp = state && SERVICES.every(([key]) => state.services[key]);
+    if (state && !allUp && !state.action?.running) run('/api/start');
+  }
+  setInterval(() => { if (!document.hidden) refresh(); }, 4000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+})();
+</script>
+</body>
+</html>

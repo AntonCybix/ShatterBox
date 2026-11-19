@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# ShatterBox på kommandoraden. Kör "./shatterbox help" för alla kommandon.
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js hittades inte. Kör ./setup.sh först, eller installera Node.js 18 eller nyare." >&2
+  exit 1
+fi
+exec node "$dir/cli/shatterbox.mjs" "$@"
